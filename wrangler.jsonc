@@ -9,7 +9,7 @@
   },
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "D1 Database",
       "database_name": "airmetro",
       "database_id": "a0e51445-95e9-40b7-8289-2c957aba5ee0"
     }
