@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>AirMétro · modération</title>
+<style>
+:root{--bg:#0b1020;--panel:#141b33;--line:#2a3558;--tx:#eef1fb;--mut:#97a2c7;--acc:#7b8cff;--bad:#e5484d}
+@media (prefers-color-scheme:light){:root{--bg:#eef1f8;--panel:#fff;--line:#d5daea;--tx:#141a33;--mut:#5a6486;--acc:#4256e0}}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,sans-serif}main{max-width:820px;margin:0 auto;padding:18px 16px 50px}
+input{padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font:inherit;width:min(100%,320px)}
+button{font:inherit;font-weight:700;padding:9px 14px;border-radius:10px;border:0;background:var(--acc);color:#fff;cursor:pointer}button.bad{background:var(--bad)}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.92rem}th,td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}.mut{color:var(--mut)}a{color:var(--acc)}
+</style></head><body><main>
+<p><a href="index.html">← Carte</a></p><h1>Modération des capteurs</h1>
+<p class="mut">Suspendre un capteur masque toutes ses mesures de la carte et bloque ses envois. Réversible.</p>
+<input id="k" type="password" placeholder="Clé d'administration" autocomplete="off"> <button id="go">Afficher</button>
+<div id="msg" class="mut" role="status"></div><table id="t" hidden><thead><tr><th>Capteur</th><th>Créé</th><th>Dernier envoi</th><th>Passages</th><th></th></tr></thead><tbody></tbody></table>
+</main><script>
+const $=id=>document.getElementById(id),H=()=>({"X-Admin":$("k").value.trim(),"Content-Type":"application/json"});
+const d=t=>t?new Date(t*1000).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):"–";
+async function load(){$("msg").textContent="…";const r=await fetch("/api/admin/sensors",{headers:H()});const j=await r.json().catch(()=>({}));
+  if(!r.ok){$("msg").textContent=j.error||"Erreur "+r.status;$("t").hidden=true;return}
+  $("msg").textContent=j.rows.length+" capteur(s)";$("t").hidden=false;const tb=$("t").tBodies[0];tb.innerHTML="";
+  j.rows.forEach(s=>{const tr=tb.insertRow();[s.id,d(s.created),d(s.last_seen),s.visits].forEach(v=>tr.insertCell().textContent=v);
+    const b=document.createElement("button");b.textContent=s.banned?"Réactiver":"Suspendre";if(!s.banned)b.className="bad";
+    b.onclick=async()=>{await fetch("/api/admin/ban",{method:"POST",headers:H(),body:JSON.stringify({id:s.id,banned:s.banned?0:1})});load()};tr.insertCell().appendChild(b)})}
+$("go").onclick=load;</script></body></html>

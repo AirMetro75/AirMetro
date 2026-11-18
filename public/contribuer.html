@@ -27,11 +27,12 @@ th,td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
 <main>
   <p style="margin:0"><a href="index.html">← Retour à la carte</a></p>
   <h1>Envoyer des mesures</h1>
-  <p class="mut" style="margin:0">Réservé à la personne qui possède le capteur. Choisissez le ou les fichiers CSV téléchargés en sortant du métro (ou le fichier complet du capteur), puis envoyez-les. Seules les moyennes par station et par ligne sont publiées, sans identité.</p>
+  <p class="mut" style="margin:0">Choisissez le ou les fichiers CSV téléchargés en sortant du métro (ou le fichier complet du capteur), puis envoyez-les. Seules les moyennes par station et par ligne sont publiées, sans identité.</p>
 
   <section class="card">
-    <label for="key">Clé d'envoi</label>
-    <input id="key" type="password" autocomplete="off" placeholder="la clé définie à l'installation">
+    <label for="key">Code de liaison de votre capteur</label>
+    <input id="key" type="password" autocomplete="off" placeholder="AM-XXXXXX.clé@adresse-du-site">
+    <p class="small mut" style="margin:4px 0 0">Pas encore d'identifiant ? <a href="capteur.html">Créez-le ici</a>, en 10 secondes.</p>
     <label for="files">Fichiers CSV</label>
     <input id="files" type="file" accept=".csv,text/csv,text/plain" multiple>
     <div id="preview"></div>
@@ -42,7 +43,7 @@ th,td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-try{$("key").value=localStorage.getItem("airmetro.site.key")||""}catch(e){}
+try{$("key").value=localStorage.getItem("airmetro.site.code")||""}catch(e){}
 let visits=[];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -74,11 +75,13 @@ $("files").addEventListener("change",async()=>{
   $("send").disabled=!visits.length});
 
 $("send").onclick=async()=>{
-  const key=$("key").value.trim(),msg=$("msg");if(!key){msg.textContent="Entrez la clé d'envoi.";msg.className="msg bad";return}
-  try{localStorage.setItem("airmetro.site.key",key)}catch(e){}
+  const code=$("key").value.trim(),msg=$("msg"),m=/^(AM-[A-Z0-9]{6})\.([A-Za-z0-9]{16,64})(@.*)?$/.exec(code);
+  if(!m){msg.textContent="Code de liaison invalide (attendu : AM-XXXXXX.clé@site).";msg.className="msg bad";return}
+  const key=code;
+  try{localStorage.setItem("airmetro.site.code",code)}catch(e){}
   $("send").disabled=true;msg.className="msg";msg.textContent="Envoi…";let acc=0,rej=0;
   try{for(let i=0;i<visits.length;i+=100){
-      const r=await fetch("/api/upload",{method:"POST",headers:{"Content-Type":"application/json","X-Key":key},body:JSON.stringify({visits:visits.slice(i,i+100)})});
+      const r=await fetch("/api/upload",{method:"POST",headers:{"Content-Type":"application/json","X-Sensor":m[1],"X-Key":m[2]},body:JSON.stringify({visits:visits.slice(i,i+100)})});
       const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("Erreur "+r.status));acc+=j.accepted;rej+=j.rejected}
     msg.textContent=`Envoyé : ${acc} passages acceptés${rej?`, ${rej} refusés (station inconnue ou valeur aberrante)`:""}. Merci !`;msg.className="msg ok"}
   catch(e){msg.textContent=e.message;msg.className="msg bad";$("send").disabled=false}};

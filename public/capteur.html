@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AirMétro · mon capteur</title>
+<meta name="description" content="Créez l'identifiant de votre capteur AirMétro, sans compte, pour partager vos mesures sur la carte.">
+<style>
+:root{--bg:#0b1020;--panel:#141b33;--panel2:#1b2442;--line:#2a3558;--tx:#eef1fb;--mut:#97a2c7;--acc:#7b8cff;--ok:#2ea043;--bad:#e5484d;--warn:#f0b429}
+@media (prefers-color-scheme:light){:root{--bg:#eef1f8;--panel:#fff;--panel2:#f2f4fb;--line:#d5daea;--tx:#141a33;--mut:#5a6486;--acc:#4256e0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:18px 16px 60px;display:grid;gap:14px}
+a{color:var(--acc);font-weight:700}h1{margin:0;font-size:1.45rem}h2{margin:0 0 8px;font-size:1.05rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+button{font:inherit;font-weight:800;padding:12px 18px;border-radius:12px;border:0;background:var(--acc);color:#fff;cursor:pointer}
+button.sec{background:var(--panel2);color:var(--tx);border:1px solid var(--line)}
+.mut{color:var(--mut)}.small{font-size:.88rem}
+.field{display:flex;gap:8px;align-items:stretch;margin:6px 0 12px}
+.field code{flex:1;min-width:0;overflow-wrap:anywhere;padding:11px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font:600 .95rem ui-monospace,Menlo,Consolas,monospace}
+.field button{padding:0 14px}
+.warn{border-color:var(--warn);background:#f0b4291a}
+ol{padding-left:20px;margin:6px 0}li{margin:4px 0}
+.msg{font-weight:700;margin-top:10px}.bad{color:var(--bad)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <p style="margin:0"><a href="index.html">← Retour à la carte</a></p>
+  <h1>Mon capteur AirMétro</h1>
+  <p class="mut" style="margin:0">Créez l'identifiant de votre capteur pour que vos parcours apparaissent sur la carte publique. <b>Aucun compte, aucun e-mail</b> : vous obtenez un identifiant et une clé secrète, c'est tout.</p>
+
+  <section class="card" id="step1">
+    <h2>1. Créer l'identifiant</h2>
+    <p class="small mut" style="margin:0 0 10px">À faire une seule fois par capteur, depuis un appareil connecté à Internet.</p>
+    <button id="create">Créer l'identifiant de mon capteur</button>
+    <div class="msg bad" id="err" role="alert"></div>
+  </section>
+
+  <section class="card warn" id="result" hidden>
+    <h2>Voici votre capteur</h2>
+    <div class="small mut">Identifiant (public, affiché sur la carte)</div>
+    <div class="field"><code id="sid"></code><button class="sec" data-copy="sid" aria-label="Copier l'identifiant">Copier</button></div>
+    <div class="small mut">Clé secrète (ne la partagez pas)</div>
+    <div class="field"><code id="skey"></code><button class="sec" data-copy="skey" aria-label="Copier la clé">Copier</button></div>
+    <div class="small mut"><b>Code de liaison</b> (à coller dans la page du capteur)</div>
+    <div class="field"><code id="scode"></code><button data-copy="scode" aria-label="Copier le code de liaison">Copier</button></div>
+    <p class="small" style="margin:0"><b>Notez-le maintenant, dans un gestionnaire de mots de passe ou un carnet.</b> La clé n'est affichée qu'une fois et ne peut pas être récupérée : en cas de perte, il suffit de créer un nouvel identifiant.</p>
+  </section>
+
+  <section class="card">
+    <h2>2. Lier le capteur</h2>
+    <ol class="small">
+      <li>Connectez votre téléphone au Wi-Fi du capteur <b>AirMetro</b> et ouvrez <b>192.168.4.1</b>.</li>
+      <li>Dans la carte « Plateforme AirMétro », collez le <b>code de liaison</b>.</li>
+      <li>À chaque « Sortir du métro », la page vous demandera : <i>Partager mon parcours sur la plateforme AirMétro ?</i> Vous choisissez Oui ou Non, à chaque fois.</li>
+    </ol>
+    <p class="small mut" style="margin:6px 0 0">Vous pouvez aussi activer le partage automatique en direct dans cette carte. L'envoi se fait dès que votre téléphone a Internet, et reprend plus tard sinon.</p>
+  </section>
+
+  <p class="small mut">Seules les moyennes par station et par ligne sont publiées, avec l'identifiant du capteur (jamais de nom ni de trajet complet horodaté à la seconde). Vous avez déjà des CSV ? <a href="contribuer.html">Envoyez-les ici</a>.</p>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+$("create").onclick=async()=>{
+  $("err").textContent="";$("create").disabled=true;
+  try{
+    const r=await fetch("/api/register",{method:"POST"});const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("Erreur "+r.status));
+    $("sid").textContent=j.id;$("skey").textContent=j.key;$("scode").textContent=j.id+"."+j.key+"@"+location.host;
+    $("result").hidden=false;$("result").scrollIntoView({behavior:"smooth",block:"center"});$("step1").hidden=true;
+  }catch(e){$("err").textContent=e.message;$("create").disabled=false}
+};
+document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{
+  const t=$(b.dataset.copy).textContent,old=b.textContent;
+  try{await navigator.clipboard.writeText(t);b.textContent="Copié ✓"}catch(e){const r=document.createRange();r.selectNodeContents($(b.dataset.copy));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Sélectionné"}
+  setTimeout(()=>b.textContent=old,1800)});
+</script>
+</body>
+</html>

@@ -3,10 +3,10 @@ import http from "node:http"; import fs from "node:fs"; import path from "node:p
 import { onRequest } from "../functions/api/[[route]].js";
 const db = new DatabaseSync(":memory:"); db.exec(fs.readFileSync("schema.sql", "utf8"));
 const wrap = (sql) => { const st = db.prepare(sql);
-  const mk = (args) => ({ bind: (...a) => mk(a), all: async () => ({ results: st.all(...args) }), first: async () => st.get(...args) ?? null, _run: () => st.run(...args) });
+  const mk = (args) => ({ bind: (...a) => mk(a), all: async () => ({ results: st.all(...args) }), first: async () => st.get(...args) ?? null, run: async () => st.run(...args), _run: () => st.run(...args) });
   return mk([]); };
 const DB = { prepare: wrap, batch: async (l) => { db.exec("BEGIN"); try { l.forEach((s) => s._run()); db.exec("COMMIT"); } catch (e) { db.exec("ROLLBACK"); throw e; } } };
-const env = { DB, UPLOAD_KEY: "secret-test" };
+const env = { DB, ADMIN_KEY: "admin-test" };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript" };
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
